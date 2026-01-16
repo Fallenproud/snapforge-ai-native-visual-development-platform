@@ -1,6 +1,6 @@
 # Cloudflare Workers AI Chat Template
 
-[![Deploy to Cloudflare][cloudflarebutton]]
+[![Deploy to Cloudflare][![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Fallenproud/snapforge-ai-native-visual-development-platform)]
 
 A production-ready template for building AI-powered chat applications using Cloudflare Workers, Durable Objects, and Cloudflare AI Gateway. Features multi-session conversations, streaming responses, tool calling (web search, weather, MCP integration), and a modern React UI with shadcn/ui components.
 
@@ -99,7 +99,7 @@ A production-ready template for building AI-powered chat applications using Clou
    ```
    Or use the one-click deploy:
 
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Fallenproud/snapforge-ai-native-visual-development-platform)
 
 3. **Configure Workers**:
    - Bind Durable Objects in `wrangler.jsonc`
