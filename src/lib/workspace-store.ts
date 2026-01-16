@@ -23,6 +23,8 @@ interface WorkspaceState {
   artifactContent: Record<string, string>;
   // Actions
   addArtifact: (artifact: Omit<Artifact, 'id'>) => void;
+  removeArtifact: (id: string) => void;
+  updateArtifactName: (id: string, name: string) => void;
   updateArtifactStatus: (id: string, status: ArtifactStatus) => void;
   updateArtifactContent: (id: string, code: string) => void;
   selectArtifact: (id: string | null) => void;
@@ -49,6 +51,19 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
       selectedArtifactId: shouldSelect ? id : state.selectedArtifactId
     };
   }),
+  removeArtifact: (id) => set((state) => {
+    const newArtifacts = state.artifacts.filter((a) => a.id !== id);
+    const newContent = { ...state.artifactContent };
+    delete newContent[id];
+    return {
+      artifacts: newArtifacts,
+      artifactContent: newContent,
+      selectedArtifactId: state.selectedArtifactId === id ? (newArtifacts[0]?.id || null) : state.selectedArtifactId
+    };
+  }),
+  updateArtifactName: (id, name) => set((state) => ({
+    artifacts: state.artifacts.map((a) => a.id === id ? { ...a, name } : a)
+  })),
   updateArtifactStatus: (id, status) => set((state) => ({
     artifacts: state.artifacts.map((a) => a.id === id ? { ...a, status } : a)
   })),
@@ -63,7 +78,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   setIsForging: (status) => set({ isForging: status }),
   clearWorkspace: () => set({
     artifacts: [],
-    logs: [],
+    logs: [{ id: 're-init', timestamp: Date.now(), level: 'info', message: 'Forge context cleared. System stand-by.' }],
     activeTemplate: 'none',
     isForging: false,
     selectedArtifactId: null,

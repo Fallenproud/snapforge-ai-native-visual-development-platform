@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Sparkles, Loader2 } from 'lucide-react';
+import { Send, Sparkles, Loader2, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -39,27 +39,27 @@ export function AgentChatPanel() {
   };
   const detectIntent = (text: string) => {
     const lowerText = text.toLowerCase();
-    const currentArtifactCount = artifacts.length;
+    addLog('info', 'Analyzing instruction AST...');
     const finalizeArtifact = (id: string, name: string, type: string) => {
       updateArtifactStatus(id, 'stable');
       updateArtifactContent(id, generateMockCode(name, type));
+      addLog('success', `Artifact finalized: ${name}`);
     };
     if (lowerText.includes('landing') || lowerText.includes('hero')) {
-      addLog('info', 'Detected Landing Page intent. Scaffolding UI artifacts...');
+      addLog('info', 'Intent match: Landing Page. Scaffolding UI cluster...');
       setTemplate('landing');
       addArtifact({ name: 'LandingPage.tsx', type: 'ui', status: 'forging' });
-      addLog('success', 'Synthesizing LandingPage.tsx components...');
+      addLog('info', 'Resolving Tailwind dependencies...');
     } else if (lowerText.includes('auth') || lowerText.includes('login')) {
-      addLog('info', 'Detected Auth pattern. Provisioning logic and storage...');
+      addLog('info', 'Intent match: Authentication. Provisioning security logic...');
       setTemplate('auth');
       addArtifact({ name: 'AuthContext.tsx', type: 'logic', status: 'forging' });
       addArtifact({ name: 'LoginScreen.tsx', type: 'ui', status: 'stable' });
     } else if (lowerText.includes('dashboard') || lowerText.includes('admin')) {
-      addLog('info', 'Detected Dashboard intent. Generating data visualization artifacts...');
+      addLog('info', 'Intent match: Dashboard. Generating visualization nodes...');
       setTemplate('dashboard');
       addArtifact({ name: 'AnalyticsPanel.tsx', type: 'component', status: 'stable' });
     }
-    // Process forging state transition for new artifacts
     setTimeout(() => {
       useWorkspaceStore.getState().artifacts.forEach(art => {
         if (art.status === 'forging') {
@@ -82,7 +82,7 @@ export function AgentChatPanel() {
     const currentInput = input;
     setInput('');
     setIsForging(true);
-    addLog('info', `Processing instruction: "${currentInput.slice(0, 30)}..."`);
+    addLog('info', `Forge sequence initiated: "${currentInput.slice(0, 20)}..."`);
     setStreamingMessage('');
     try {
       await chatService.sendMessage(currentInput, undefined, (chunk) => {
@@ -92,10 +92,10 @@ export function AgentChatPanel() {
       if (res.success && res.data) {
         setMessages(res.data.messages);
         detectIntent(currentInput);
-        addLog('success', 'Sopphy forge sequence completed successfully.');
+        addLog('success', 'Sopphy forge sequence completed.');
       }
     } catch (err) {
-      addLog('error', 'Forge sequence interrupted by unexpected error.');
+      addLog('error', 'Forge sequence interrupted by unexpected exception.');
     } finally {
       setIsForging(false);
       setStreamingMessage('');
@@ -105,23 +105,29 @@ export function AgentChatPanel() {
     <div className="flex flex-col h-full bg-slate-950/80 border-r border-white/10">
       <div className="p-4 border-b border-white/10 flex items-center justify-between bg-slate-900/20">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-brand-cyan/20 flex items-center justify-center">
+          <div className="h-8 w-8 rounded-full bg-brand-cyan/20 flex items-center justify-center relative">
             <Sparkles className="h-5 w-5 text-brand-cyan" />
+            {isForging && <div className="absolute inset-0 rounded-full border border-brand-cyan animate-ping" />}
           </div>
           <div>
             <h3 className="text-sm font-bold text-white">Sopphy Agent</h3>
             <p className={cn("text-[10px]", isForging ? "text-brand-cyan animate-pulse" : "text-muted-foreground")}>
-              {isForging ? "Forging artifacts..." : "Ready to build"}
+              {isForging ? "Synthesizing Node AST..." : "Ready to build"}
             </p>
           </div>
         </div>
+        {isForging && (
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-300" onClick={() => setIsForging(false)}>
+            <XCircle className="h-4 w-4" />
+          </Button>
+        )}
       </div>
       <ScrollArea className="flex-1 px-4">
         <div className="space-y-6 py-6">
           {messages.map((msg) => (
             <div key={msg.id} className={cn("flex flex-col gap-2", msg.role === 'user' ? "items-end" : "items-start")}>
               <div className={cn(
-                "max-w-[85%] rounded-2xl p-3 text-sm transition-all",
+                "max-w-[85%] rounded-2xl p-3 text-sm transition-all whitespace-pre-wrap",
                 msg.role === 'user'
                   ? "bg-brand-cyan text-white rounded-tr-none shadow-glow/20"
                   : "bg-slate-900 border border-white/10 text-slate-200 rounded-tl-none glass-panel"
@@ -150,12 +156,6 @@ export function AgentChatPanel() {
               </div>
             </div>
           )}
-          {isForging && !streamingMessage && (
-            <div className="flex items-center gap-2 text-muted-foreground text-xs italic p-2">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              Sopphy is synthesizing instructions...
-            </div>
-          )}
           <div ref={scrollAnchorRef} className="h-4" />
         </div>
       </ScrollArea>
@@ -173,7 +173,7 @@ export function AgentChatPanel() {
             onClick={handleSendMessage}
             disabled={isForging || !input.trim()}
             size="icon"
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 h-8 w-8 bg-brand-cyan hover:bg-brand-cyan/90 transition-all active:scale-95"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 h-8 w-8 bg-brand-cyan hover:bg-brand-cyan/90 transition-all active:scale-95 shadow-glow"
           >
             <Send className="h-4 w-4" />
           </Button>

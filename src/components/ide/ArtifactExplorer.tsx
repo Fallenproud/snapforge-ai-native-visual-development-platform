@@ -1,9 +1,17 @@
 import React, { useState } from 'react';
-import { FileCode, Layout, Box, Search, ChevronRight, Folder, FolderOpen, Database, Globe } from 'lucide-react';
+import { FileCode, Layout, Box, Search, ChevronRight, Folder, FolderOpen, Database, Globe, MoreVertical, Trash2, Edit3 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useWorkspaceStore, Artifact } from '@/lib/workspace-store';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 const TypeIcon = ({ type }: { type: Artifact['type'] }) => {
   switch (type) {
     case 'ui': return <Layout className="h-4 w-4 text-brand-cyan" />;
@@ -15,10 +23,28 @@ const TypeIcon = ({ type }: { type: Artifact['type'] }) => {
 };
 export function ArtifactExplorer() {
   const [search, setSearch] = useState('');
-  const artifacts = useWorkspaceStore((state) => state.artifacts);
-  const selectedArtifactId = useWorkspaceStore((state) => state.selectedArtifactId);
-  const selectArtifact = useWorkspaceStore((state) => state.selectArtifact);
+  const artifacts = useWorkspaceStore((s) => s.artifacts);
+  const selectedArtifactId = useWorkspaceStore((s) => s.selectedArtifactId);
+  const selectArtifact = useWorkspaceStore((s) => s.selectArtifact);
+  const removeArtifact = useWorkspaceStore((s) => s.removeArtifact);
+  const updateArtifactName = useWorkspaceStore((s) => s.updateArtifactName);
+  const addLog = useWorkspaceStore((s) => s.addLog);
   const filtered = artifacts.filter(a => a.name.toLowerCase().includes(search.toLowerCase()));
+  const handleRename = (id: string, currentName: string) => {
+    const newName = window.prompt("Rename artifact:", currentName);
+    if (newName && newName !== currentName) {
+      updateArtifactName(id, newName);
+      addLog('info', `Artifact renamed: ${currentName} -> ${newName}`);
+      toast.success("Artifact renamed");
+    }
+  };
+  const handleDelete = (id: string, name: string) => {
+    if (confirm(`Are you sure you want to delete ${name}?`)) {
+      removeArtifact(id);
+      addLog('warn', `Artifact deleted: ${name}`);
+      toast.success("Artifact removed from forge");
+    }
+  };
   return (
     <div className="flex flex-col h-full bg-slate-950/90 border-r border-white/10">
       <div className="p-4 border-b border-white/10">
@@ -53,25 +79,41 @@ export function ArtifactExplorer() {
                   key={artifact.id}
                   onClick={() => selectArtifact(artifact.id)}
                   className={cn(
-                    "flex items-center justify-between px-3 py-2 rounded-lg text-xs cursor-pointer transition-all border",
-                    selectedArtifactId === artifact.id 
-                      ? "bg-brand-cyan/10 border-brand-cyan/40 text-brand-cyan shadow-glow" 
+                    "flex items-center justify-between px-3 py-2 rounded-lg text-xs cursor-pointer transition-all border group/item",
+                    selectedArtifactId === artifact.id
+                      ? "bg-brand-cyan/10 border-brand-cyan/40 text-brand-cyan shadow-glow"
                       : "bg-transparent border-transparent text-slate-300 hover:bg-white/5 hover:border-white/10",
                     artifact.status === 'forging' && "bg-brand-purple/5 border-brand-purple/20"
                   )}
                 >
                   <div className="flex items-center gap-3">
-                    <TypeIcon type={artifact.type} />
+                    <div className={cn(artifact.status === 'forging' && "animate-pulse")}>
+                       <TypeIcon type={artifact.type} />
+                    </div>
                     <span className={cn(
-                      "transition-colors truncate max-w-[140px]",
+                      "transition-colors truncate max-w-[120px]",
                       artifact.status === 'forging' ? "text-brand-purple animate-pulse" : ""
                     )}>
                       {artifact.name}
                     </span>
                   </div>
-                  {artifact.status === 'forging' && (
-                    <div className="h-1.5 w-1.5 rounded-full bg-brand-purple shadow-glow-purple animate-ping" />
-                  )}
+                  <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => e.stopPropagation()}>
+                          <MoreVertical className="h-3 w-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-slate-950 border-white/10 text-white">
+                        <DropdownMenuItem onClick={() => handleRename(artifact.id, artifact.name)} className="gap-2">
+                          <Edit3 className="h-3.5 w-3.5" /> Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDelete(artifact.id, artifact.name)} className="gap-2 text-red-400 focus:text-red-400">
+                          <Trash2 className="h-3.5 w-3.5" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               ))
             )}

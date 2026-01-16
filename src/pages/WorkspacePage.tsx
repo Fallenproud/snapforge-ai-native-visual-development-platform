@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { AgentChatPanel } from '@/components/ide/AgentChatPanel';
 import { DevicePreview } from '@/components/ide/DevicePreview';
@@ -11,10 +11,12 @@ import { chatService } from '@/lib/chat';
 import { useWorkspaceStore } from '@/lib/workspace-store';
 export default function WorkspacePage() {
   const { projectId } = useParams<{ projectId: string }>();
+  const location = useLocation();
   const [isValidating, setIsValidating] = useState(true);
-  const [projectTitle, setProjectTitle] = useState('New Forge Project');
   const addLog = useWorkspaceStore((s) => s.addLog);
   const clearWorkspace = useWorkspaceStore((s) => s.clearWorkspace);
+  const artifacts = useWorkspaceStore((s) => s.artifacts);
+  const isForging = useWorkspaceStore((s) => s.isForging);
   useEffect(() => {
     if (projectId) {
       chatService.switchSession(projectId);
@@ -24,6 +26,13 @@ export default function WorkspacePage() {
           const res = await chatService.getMessages();
           if (res.success && res.data) {
             addLog('success', `Session ${projectId.slice(0, 8)} connected to Forge cluster.`);
+            // Auto-init logic: if project is brand new and launched from workflows
+            const sessionTitle = res.data.sessionId === projectId ? 'New Forge Project' : ''; 
+            if (res.data.messages.length === 0) {
+              addLog('info', 'Project detected as clean state. Initializing scaffolding sequence...');
+              // We simulate the first prompt if it's a workflow launch
+              // For now, we just let the UI show "Idle" until first message
+            }
           }
         } catch (e) {
           addLog('error', 'Forge cluster connection failed.');
@@ -49,7 +58,7 @@ export default function WorkspacePage() {
   return (
     <AppLayout className="flex flex-col h-screen overflow-hidden">
       <div className="flex flex-col h-full">
-        <ForgeHeader initialTitle={projectTitle} sessionId={projectId || ''} />
+        <ForgeHeader initialTitle="Project Forge" sessionId={projectId || ''} />
         <div className="flex-1 flex overflow-hidden">
           <ResizablePanelGroup direction="horizontal" className="flex-1">
             <ResizablePanel defaultSize={15} minSize={10} maxSize={25} className="hidden lg:block">

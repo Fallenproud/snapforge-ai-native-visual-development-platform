@@ -1,24 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { Smartphone, Laptop, Tablet, RefreshCw, ExternalLink, Loader2, PieChart, Lock, User, Layout, Code } from 'lucide-react';
+import { Smartphone, Laptop, Tablet, RefreshCw, ExternalLink, Loader2, PieChart, Lock, User, Layout } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useWorkspaceStore } from '@/lib/workspace-store';
 import { CodeViewer } from './CodeViewer';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
 export function DevicePreview() {
   const [device, setDevice] = useState('mobile');
   const [viewMode, setViewMode] = useState<'preview' | 'code'>('preview');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const activeTemplate = useWorkspaceStore((s) => s.activeTemplate);
   const isForging = useWorkspaceStore((s) => s.isForging);
+  const selectedArtifactId = useWorkspaceStore((s) => s.selectedArtifactId);
+  const artifacts = useWorkspaceStore((s) => s.artifacts);
   const addLog = useWorkspaceStore((s) => s.addLog);
+  const selectedArtifact = artifacts.find(a => a.id === selectedArtifactId);
   useEffect(() => {
-    if (activeTemplate !== 'none') {
+    if (selectedArtifactId) {
       setIsRefreshing(true);
-      addLog('info', `Hot-reloading preview for template: ${activeTemplate}...`);
-      setTimeout(() => setIsRefreshing(false), 1200);
+      const timer = setTimeout(() => setIsRefreshing(false), 800);
+      return () => clearTimeout(timer);
     }
-  }, [activeTemplate, addLog]);
+  }, [selectedArtifactId]);
   const handleRefresh = () => {
     setIsRefreshing(true);
     addLog('info', 'Manual preview refresh triggered.');
@@ -30,7 +34,10 @@ export function DevicePreview() {
     desktop: "w-full max-w-[1000px] h-[600px] rounded-t-xl border-t-[12px] border-x-[12px]"
   };
   const renderMockContent = () => {
-    if (activeTemplate === 'landing') {
+    const artName = selectedArtifact?.name.toLowerCase() || '';
+    const artType = selectedArtifact?.type || '';
+    // Selection-aware rendering
+    if (activeTemplate === 'landing' || artName.includes('landing') || artName.includes('hero')) {
       return (
         <div className="space-y-6 animate-in fade-in duration-700">
           <div className="flex justify-between items-center">
@@ -48,7 +55,7 @@ export function DevicePreview() {
         </div>
       );
     }
-    if (activeTemplate === 'auth') {
+    if (activeTemplate === 'auth' || artName.includes('login') || artName.includes('auth') || artType === 'logic') {
       return (
         <div className="flex flex-col items-center justify-center h-full gap-8 animate-in slide-in-from-bottom-4 duration-500">
           <div className="h-16 w-16 rounded-3xl bg-brand-purple/20 flex items-center justify-center border border-brand-purple/40">
@@ -63,7 +70,7 @@ export function DevicePreview() {
         </div>
       );
     }
-    if (activeTemplate === 'dashboard') {
+    if (activeTemplate === 'dashboard' || artName.includes('dash') || artName.includes('analyt')) {
       return (
         <div className="space-y-6 animate-in zoom-in-95 duration-500">
           <div className="flex items-center gap-4">
@@ -90,7 +97,9 @@ export function DevicePreview() {
           <Loader2 className="h-8 w-8 text-muted-foreground/20" />
         </div>
         <div className="space-y-2">
-          <p className="text-white/40 font-mono text-sm">NO ACTIVE ARTIFACTS</p>
+          <p className="text-white/40 font-mono text-sm uppercase tracking-widest">
+            {selectedArtifact ? `PREVIEWING ${selectedArtifact.name}` : "NO ACTIVE ARTIFACTS"}
+          </p>
           <p className="text-xs text-muted-foreground max-w-[200px]">Prompt Sopphy to begin the forging process.</p>
         </div>
       </div>
@@ -121,7 +130,27 @@ export function DevicePreview() {
           <Button variant="ghost" size="icon" className="h-6 w-6"><ExternalLink className="h-3 w-3" /></Button>
         </div>
       </div>
-      <div className="flex-1 flex items-center justify-center p-8 overflow-hidden">
+      <div className="flex-1 flex items-center justify-center p-8 overflow-hidden relative">
+        <AnimatePresence>
+          {isRefreshing && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-50 bg-slate-950/60 backdrop-blur-md flex flex-col items-center justify-center gap-4"
+            >
+               <div className="h-1 w-64 bg-slate-800 rounded-full overflow-hidden">
+                 <motion.div 
+                   className="h-full bg-brand-cyan"
+                   initial={{ width: "0%" }}
+                   animate={{ width: "100%" }}
+                   transition={{ duration: 0.8 }}
+                 />
+               </div>
+               <p className="text-[10px] font-mono text-brand-cyan animate-pulse tracking-[0.2em] uppercase">Visual Scan In Progress</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
         {viewMode === 'preview' ? (
           <div className={cn(
             "relative bg-slate-950 border-slate-800 shadow-2xl flex flex-col overflow-hidden transition-all duration-700",
@@ -134,12 +163,6 @@ export function DevicePreview() {
             <div className={cn(
               "flex-1 bg-[#020617] p-6 overflow-y-auto relative",
             )}>
-              {(isRefreshing || isForging) && (
-                <div className="absolute inset-0 z-20 bg-slate-950/40 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
-                  <div className="h-10 w-10 border-2 border-brand-cyan/20 border-t-brand-cyan rounded-full animate-spin" />
-                  <p className="text-[10px] font-mono text-brand-cyan animate-pulse tracking-[0.2em] uppercase">Synthesizing Artifacts</p>
-                </div>
-              )}
               {renderMockContent()}
             </div>
           </div>
