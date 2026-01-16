@@ -5,11 +5,17 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { chatService, renderToolCall } from '@/lib/chat';
+import { useWorkspaceStore } from '@/lib/workspace-store';
 import { Message } from '../../../worker/types';
 export function AgentChatPanel() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const isForging = useWorkspaceStore((s) => s.isForging);
+  const setIsForging = useWorkspaceStore((s) => s.setIsForging);
+  const addLog = useWorkspaceStore((s) => s.addLog);
+  const addArtifact = useWorkspaceStore((s) => s.addArtifact);
+  const updateArtifactStatus = useWorkspaceStore((s) => s.updateArtifactStatus);
+  const setTemplate = useWorkspaceStore((s) => s.setTemplate);
   const [streamingMessage, setStreamingMessage] = useState('');
   const scrollAnchorRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -26,8 +32,26 @@ export function AgentChatPanel() {
       scrollAnchorRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, streamingMessage]);
+  const detectIntent = (text: string) => {
+    const lowerText = text.toLowerCase();
+    if (lowerText.includes('landing') || lowerText.includes('hero')) {
+      addLog('info', 'Detected Landing Page intent. Scaffolding UI artifacts...');
+      setTemplate('landing');
+      addArtifact({ name: 'LandingPage.tsx', type: 'ui', status: 'forging' });
+      setTimeout(() => updateArtifactStatus(messages[messages.length-1]?.id || '1', 'stable'), 3000);
+    } else if (lowerText.includes('auth') || lowerText.includes('login')) {
+      addLog('info', 'Detected Auth pattern. Provisioning logic and storage...');
+      setTemplate('auth');
+      addArtifact({ name: 'AuthContext.tsx', type: 'logic', status: 'forging' });
+      addArtifact({ name: 'LoginScreen.tsx', type: 'ui', status: 'stable' });
+    } else if (lowerText.includes('dashboard') || lowerText.includes('admin')) {
+      addLog('info', 'Detected Dashboard intent. Generating data visualization artifacts...');
+      setTemplate('dashboard');
+      addArtifact({ name: 'AnalyticsPanel.tsx', type: 'component', status: 'stable' });
+    }
+  };
   const handleSendMessage = async () => {
-    if (!input.trim() || isProcessing) return;
+    if (!input.trim() || isForging) return;
     const userMsg: Message = {
       id: crypto.randomUUID(),
       role: 'user',
@@ -35,35 +59,39 @@ export function AgentChatPanel() {
       timestamp: Date.now()
     };
     setMessages(prev => [...prev, userMsg]);
+    const currentInput = input;
     setInput('');
-    setIsProcessing(true);
+    setIsForging(true);
+    addLog('info', `Processing instruction: "${currentInput.slice(0, 30)}..."`);
     setStreamingMessage('');
     try {
-      await chatService.sendMessage(input, undefined, (chunk) => {
+      await chatService.sendMessage(currentInput, undefined, (chunk) => {
         setStreamingMessage(prev => prev + chunk);
       });
       const res = await chatService.getMessages();
       if (res.success && res.data) {
         setMessages(res.data.messages);
+        detectIntent(currentInput);
+        addLog('success', 'Sopphy forge sequence completed successfully.');
       }
     } catch (err) {
-      console.error("Chat error", err);
+      addLog('error', 'Forge sequence interrupted by unexpected error.');
     } finally {
-      setIsProcessing(false);
+      setIsForging(false);
       setStreamingMessage('');
     }
   };
   return (
     <div className="flex flex-col h-full bg-slate-950/80 border-r border-white/10">
-      <div className="p-4 border-b border-white/10 flex items-center justify-between">
+      <div className="p-4 border-b border-white/10 flex items-center justify-between bg-slate-900/20">
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-full bg-brand-cyan/20 flex items-center justify-center">
             <Sparkles className="h-5 w-5 text-brand-cyan" />
           </div>
           <div>
             <h3 className="text-sm font-bold text-white">Sopphy Agent</h3>
-            <p className={cn("text-[10px]", isProcessing ? "text-brand-cyan animate-pulse" : "text-muted-foreground")}>
-              {isProcessing ? "Processing instructions..." : "Ready to forge"}
+            <p className={cn("text-[10px]", isForging ? "text-brand-cyan animate-pulse" : "text-muted-foreground")}>
+              {isForging ? "Forging artifacts..." : "Ready to build"}
             </p>
           </div>
         </div>
@@ -102,10 +130,10 @@ export function AgentChatPanel() {
               </div>
             </div>
           )}
-          {isProcessing && !streamingMessage && (
+          {isForging && !streamingMessage && (
             <div className="flex items-center gap-2 text-muted-foreground text-xs italic p-2">
               <Loader2 className="h-3 w-3 animate-spin" />
-              Sopphy is thinking...
+              Sopphy is synthesizing instructions...
             </div>
           )}
           <div ref={scrollAnchorRef} className="h-4" />
@@ -117,15 +145,15 @@ export function AgentChatPanel() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-            placeholder="Instruct Sopphy..."
-            disabled={isProcessing}
+            placeholder={isForging ? "Forge in progress..." : "Instruct Sopphy..."}
+            disabled={isForging}
             className="pr-12 bg-slate-900 border-white/10 focus-visible:ring-brand-cyan focus-visible:border-brand-cyan/50 h-11"
           />
           <Button
             onClick={handleSendMessage}
-            disabled={isProcessing || !input.trim()}
+            disabled={isForging || !input.trim()}
             size="icon"
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 h-8 w-8 bg-brand-cyan hover:bg-brand-cyan/90"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 h-8 w-8 bg-brand-cyan hover:bg-brand-cyan/90 transition-all active:scale-95"
           >
             <Send className="h-4 w-4" />
           </Button>
