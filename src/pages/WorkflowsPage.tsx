@@ -1,20 +1,15 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Rocket, Code, Palette, Zap, Cpu, Layout, Layers, ShieldCheck, Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { chatService } from '@/lib/chat';
-import { toast } from 'sonner';
+import { Rocket, Code, Palette, Zap, Cpu, Layout, Layers, ShieldCheck } from 'lucide-react';
 const workflows = [
   {
     title: "SaaS Landing Page",
     description: "Full-stack landing page with hero, features, pricing and contact forms.",
     category: "Frontend",
     complexity: "Medium",
-    template: "landing",
     icon: Layout,
     color: "from-blue-500 to-brand-cyan"
   },
@@ -23,7 +18,6 @@ const workflows = [
     description: "Complete authentication flow using NextAuth or Clerk with D1 database.",
     category: "Backend",
     complexity: "High",
-    template: "auth",
     icon: ShieldCheck,
     color: "from-brand-purple to-pink-500"
   },
@@ -32,7 +26,6 @@ const workflows = [
     description: "Generate a consistent design system with Radix UI and Tailwind variables.",
     category: "UI/UX",
     complexity: "Easy",
-    template: "landing",
     icon: Palette,
     color: "from-orange-400 to-yellow-500"
   },
@@ -41,7 +34,6 @@ const workflows = [
     description: "Hono based API server with Zod validation and OpenAPI documentation.",
     category: "Logic",
     complexity: "Medium",
-    template: "logic",
     icon: Cpu,
     color: "from-green-500 to-emerald-400"
   },
@@ -50,7 +42,6 @@ const workflows = [
     description: "React Native template with Expo and mobile-optimized UI components.",
     category: "Mobile",
     complexity: "High",
-    template: "landing",
     icon: Zap,
     color: "from-indigo-500 to-brand-purple"
   },
@@ -59,31 +50,11 @@ const workflows = [
     description: "Management portal with complex tables, charts and data visualization.",
     category: "Fullstack",
     complexity: "Medium",
-    template: "dashboard",
     icon: Layers,
     color: "from-brand-cyan to-blue-600"
   }
 ];
 export default function WorkflowsPage() {
-  const navigate = useNavigate();
-  const [launchingId, setLaunchingId] = useState<string | null>(null);
-  const handleLaunch = async (workflow: typeof workflows[0]) => {
-    setLaunchingId(workflow.title);
-    try {
-      const title = `${workflow.title} Forge`;
-      const res = await chatService.createSession(title);
-      if (res.success && res.data) {
-        toast.success(`Initializing ${workflow.title}...`);
-        navigate(`/workspace/${res.data.sessionId}`);
-      } else {
-        toast.error("Failed to initialize workflow");
-      }
-    } catch (error) {
-      toast.error("An error occurred");
-    } finally {
-      setLaunchingId(null);
-    }
-  };
   return (
     <AppLayout container>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -118,16 +89,8 @@ export default function WorkflowsPage() {
                   <Badge variant="outline" className="text-xs border-brand-purple/30 text-brand-purple">{wf.complexity}</Badge>
                 </CardContent>
                 <CardFooter className="pt-4 border-t border-white/5">
-                  <Button 
-                    onClick={() => handleLaunch(wf)}
-                    disabled={launchingId !== null}
-                    className="w-full bg-slate-900 hover:bg-brand-cyan hover:text-white border border-white/10 group-hover:border-brand-cyan/50 transition-all"
-                  >
-                    {launchingId === wf.title ? (
-                      <>Launching... <Loader2 className="ml-2 h-4 w-4 animate-spin" /></>
-                    ) : (
-                      <>Launch Workflow <Rocket className="ml-2 h-4 w-4" /></>
-                    )}
+                  <Button className="w-full bg-slate-900 hover:bg-brand-cyan hover:text-white border border-white/10 group-hover:border-brand-cyan/50 transition-all">
+                    Launch Workflow <Rocket className="ml-2 h-4 w-4" />
                   </Button>
                 </CardFooter>
               </Card>

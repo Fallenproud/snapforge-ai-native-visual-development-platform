@@ -13,6 +13,7 @@ import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
 import '@/index.css'
 import { HomePage } from '@/pages/HomePage'
 import WorkspacePage from '@/pages/WorkspacePage'
+import WorkflowsPage from '@/pages/WorkflowsPage'
 const queryClient = new QueryClient();
 const router = createBrowserRouter([
   {
@@ -27,7 +28,7 @@ const router = createBrowserRouter([
   },
   {
     path: "/workflows",
-    element: <HomePage />, // Placeholder for Phase 2
+    element: <WorkflowsPage />,
     errorElement: <RouteErrorBoundary />,
   }
 ]);
