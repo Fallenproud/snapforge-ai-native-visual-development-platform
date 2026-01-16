@@ -16,6 +16,8 @@ const TypeIcon = ({ type }: { type: Artifact['type'] }) => {
 export function ArtifactExplorer() {
   const [search, setSearch] = useState('');
   const artifacts = useWorkspaceStore((state) => state.artifacts);
+  const selectedArtifactId = useWorkspaceStore((state) => state.selectedArtifactId);
+  const selectArtifact = useWorkspaceStore((state) => state.selectArtifact);
   const filtered = artifacts.filter(a => a.name.toLowerCase().includes(search.toLowerCase()));
   return (
     <div className="flex flex-col h-full bg-slate-950/90 border-r border-white/10">
@@ -49,17 +51,20 @@ export function ArtifactExplorer() {
               filtered.map(artifact => (
                 <div
                   key={artifact.id}
+                  onClick={() => selectArtifact(artifact.id)}
                   className={cn(
-                    "flex items-center justify-between px-3 py-2 rounded-lg text-xs cursor-pointer transition-all border border-transparent",
-                    "hover:bg-brand-cyan/5 hover:border-brand-cyan/20 group",
+                    "flex items-center justify-between px-3 py-2 rounded-lg text-xs cursor-pointer transition-all border",
+                    selectedArtifactId === artifact.id 
+                      ? "bg-brand-cyan/10 border-brand-cyan/40 text-brand-cyan shadow-glow" 
+                      : "bg-transparent border-transparent text-slate-300 hover:bg-white/5 hover:border-white/10",
                     artifact.status === 'forging' && "bg-brand-purple/5 border-brand-purple/20"
                   )}
                 >
                   <div className="flex items-center gap-3">
                     <TypeIcon type={artifact.type} />
                     <span className={cn(
-                      "transition-colors",
-                      artifact.status === 'forging' ? "text-brand-purple animate-pulse" : "text-slate-300 group-hover:text-white"
+                      "transition-colors truncate max-w-[140px]",
+                      artifact.status === 'forging' ? "text-brand-purple animate-pulse" : ""
                     )}>
                       {artifact.name}
                     </span>

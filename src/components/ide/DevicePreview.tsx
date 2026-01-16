@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Smartphone, Laptop, Tablet, RefreshCw, ExternalLink, Loader2, PieChart, Lock, User, Layout } from 'lucide-react';
+import { Smartphone, Laptop, Tablet, RefreshCw, ExternalLink, Loader2, PieChart, Lock, User, Layout, Code } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useWorkspaceStore } from '@/lib/workspace-store';
+import { CodeViewer } from './CodeViewer';
 import { cn } from '@/lib/utils';
 export function DevicePreview() {
   const [device, setDevice] = useState('mobile');
+  const [viewMode, setViewMode] = useState<'preview' | 'code'>('preview');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const activeTemplate = useWorkspaceStore((s) => s.activeTemplate);
   const isForging = useWorkspaceStore((s) => s.isForging);
@@ -97,8 +99,15 @@ export function DevicePreview() {
   return (
     <div className="flex flex-col h-full bg-slate-900 forge-bg">
       <div className="p-2 border-b border-white/10 bg-slate-950 flex items-center justify-between">
-        <div className="flex items-center gap-1">
-          <Tabs value={device} onValueChange={setDevice}>
+        <div className="flex items-center gap-2">
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)}>
+            <TabsList className="bg-slate-900 h-8 p-1">
+              <TabsTrigger value="preview" className="h-6 px-3 text-[10px] uppercase font-bold tracking-widest">Preview</TabsTrigger>
+              <TabsTrigger value="code" className="h-6 px-3 text-[10px] uppercase font-bold tracking-widest">Code</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <div className="h-4 w-[1px] bg-white/10 mx-1" />
+          <Tabs value={device} onValueChange={setDevice} className={cn(viewMode === 'code' && "opacity-20 pointer-events-none")}>
             <TabsList className="bg-slate-900 h-8 p-1 gap-1">
               <TabsTrigger value="mobile" className="h-6 w-8 p-0"><Smartphone className="h-3 w-3" /></TabsTrigger>
               <TabsTrigger value="tablet" className="h-6 w-8 p-0"><Tablet className="h-3 w-3" /></TabsTrigger>
@@ -113,26 +122,32 @@ export function DevicePreview() {
         </div>
       </div>
       <div className="flex-1 flex items-center justify-center p-8 overflow-hidden">
-        <div className={cn(
-          "relative bg-slate-950 border-slate-800 shadow-2xl flex flex-col overflow-hidden transition-all duration-700",
-          deviceConfigs[device],
-          (isRefreshing || isForging) && "scale-[0.98] opacity-80"
-        )}>
-          {device !== 'desktop' && (
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-6 bg-slate-800 rounded-b-2xl z-10" />
-          )}
+        {viewMode === 'preview' ? (
           <div className={cn(
-            "flex-1 bg-[#020617] p-6 overflow-y-auto relative",
+            "relative bg-slate-950 border-slate-800 shadow-2xl flex flex-col overflow-hidden transition-all duration-700",
+            deviceConfigs[device],
+            (isRefreshing || isForging) && "scale-[0.98] opacity-80"
           )}>
-            {(isRefreshing || isForging) && (
-              <div className="absolute inset-0 z-20 bg-slate-950/40 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
-                <div className="h-10 w-10 border-2 border-brand-cyan/20 border-t-brand-cyan rounded-full animate-spin" />
-                <p className="text-[10px] font-mono text-brand-cyan animate-pulse tracking-[0.2em] uppercase">Synthesizing Artifacts</p>
-              </div>
+            {device !== 'desktop' && (
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-6 bg-slate-800 rounded-b-2xl z-10" />
             )}
-            {renderMockContent()}
+            <div className={cn(
+              "flex-1 bg-[#020617] p-6 overflow-y-auto relative",
+            )}>
+              {(isRefreshing || isForging) && (
+                <div className="absolute inset-0 z-20 bg-slate-950/40 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
+                  <div className="h-10 w-10 border-2 border-brand-cyan/20 border-t-brand-cyan rounded-full animate-spin" />
+                  <p className="text-[10px] font-mono text-brand-cyan animate-pulse tracking-[0.2em] uppercase">Synthesizing Artifacts</p>
+                </div>
+              )}
+              {renderMockContent()}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="w-full h-full max-w-4xl glass-panel rounded-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            <CodeViewer />
+          </div>
+        )}
       </div>
     </div>
   );

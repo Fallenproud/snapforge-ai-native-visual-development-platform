@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { chatService } from '@/lib/chat';
 import { useWorkspaceStore } from '@/lib/workspace-store';
+import { cn } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -20,9 +21,10 @@ export function ForgeHeader({ initialTitle, sessionId }: ForgeHeaderProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(initialTitle);
   const [isDeploying, setIsDeploying] = useState(false);
-  const artifactCount = useWorkspaceStore((s) => s.artifacts.length);
+  const artifacts = useWorkspaceStore((s) => s.artifacts);
   const isForging = useWorkspaceStore((s) => s.isForging);
   const addLog = useWorkspaceStore((s) => s.addLog);
+  const artifactCount = artifacts.length;
   const handleRename = async () => {
     if (!title.trim() || title === initialTitle) {
       setIsEditing(false);
