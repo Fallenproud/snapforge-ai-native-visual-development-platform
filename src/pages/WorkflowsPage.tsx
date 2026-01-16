@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Rocket, Code, Palette, Zap, Cpu, Layout, Layers, ShieldCheck } from 'lucide-react';
+import { cn } from '@/lib/utils';
 const workflows = [
   {
     title: "SaaS Landing Page",

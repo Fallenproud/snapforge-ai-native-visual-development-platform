@@ -3,34 +3,70 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, ArrowRight, Code2, Globe, ShieldCheck, Zap, Terminal } from 'lucide-react';
+import { Plus, ArrowRight, Zap, Terminal, MoreVertical, Trash2, Edit3 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { chatService } from '@/lib/chat';
 import { SessionInfo } from '../../worker/types';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from 'sonner';
 export function HomePage() {
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  useEffect(() => {
-    const fetchSessions = async () => {
-      try {
-        const res = await chatService.listSessions();
-        if (res.success && res.data) {
-          setSessions(res.data);
-        }
-      } catch (err) {
-        console.error("Failed to load sessions", err);
-      } finally {
-        setLoading(false);
+  const fetchSessions = async () => {
+    try {
+      const res = await chatService.listSessions();
+      if (res.success && res.data) {
+        setSessions(res.data);
       }
-    };
+    } catch (err) {
+      console.error("Failed to load sessions", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
     fetchSessions();
   }, []);
   const handleCreateProject = async () => {
     const res = await chatService.createSession();
     if (res.success && res.data) {
       navigate(`/workspace/${res.data.sessionId}`);
+    }
+  };
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      const res = await chatService.deleteSession(id);
+      if (res.success) {
+        setSessions(prev => prev.filter(s => s.id !== id));
+        toast.success("Project deleted successfully");
+      }
+    } catch (err) {
+      toast.error("Failed to delete project");
+    }
+  };
+  const handleRename = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const newTitle = window.prompt("Enter new project title:");
+    if (newTitle) {
+      try {
+        const res = await chatService.updateSessionTitle(id, newTitle);
+        if (res.success) {
+          setSessions(prev => prev.map(s => s.id === id ? { ...s, title: newTitle } : s));
+          toast.success("Project renamed");
+        }
+      } catch (err) {
+        toast.error("Failed to rename project");
+      }
     }
   };
   return (
@@ -62,7 +98,7 @@ export function HomePage() {
           <section className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-semibold text-white">Active Projects</h2>
-              <Button variant="link" className="text-brand-cyan p-0">View All</Button>
+              <Button variant="link" onClick={fetchSessions} className="text-brand-cyan p-0">Refresh</Button>
             </div>
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -74,17 +110,29 @@ export function HomePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {sessions.map((session) => (
                   <Link key={session.id} to={`/workspace/${session.id}`}>
-                    <Card className="glass-panel hover:border-brand-cyan/50 transition-all group cursor-pointer h-full border-white/10 bg-slate-900/40">
+                    <Card className="glass-panel hover:border-brand-cyan/50 transition-all group cursor-pointer h-full border-white/10 bg-slate-900/40 relative">
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <div className="p-2 rounded-lg bg-slate-950 border border-white/5 text-brand-cyan">
                             <Terminal className="h-6 w-6" />
                           </div>
-                          <Badge variant="secondary" className="bg-slate-950 text-muted-foreground border-white/5">
-                            {new Date(session.lastActive).toLocaleDateString()}
-                          </Badge>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/10" onClick={(e) => e.stopPropagation()}>
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-slate-950 border-white/10 text-white">
+                              <DropdownMenuItem onClick={(e) => handleRename(e, session.id)} className="gap-2">
+                                <Edit3 className="h-4 w-4" /> Rename
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={(e) => handleDelete(e, session.id)} className="gap-2 text-red-400 focus:text-red-400">
+                                <Trash2 className="h-4 w-4" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
-                        <CardTitle className="pt-4 group-hover:text-brand-cyan transition-colors truncate">{session.title}</CardTitle>
+                        <CardTitle className="pt-4 group-hover:text-brand-cyan transition-colors truncate pr-8">{session.title}</CardTitle>
                         <CardDescription className="text-muted-foreground line-clamp-2">
                           Project initialized on {new Date(session.createdAt).toLocaleDateString()}
                         </CardDescription>

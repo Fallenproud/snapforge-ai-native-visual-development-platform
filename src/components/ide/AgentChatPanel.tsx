@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Sparkles, CheckCircle2, Circle, Loader2, User, Bot } from 'lucide-react';
+import { Send, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -11,7 +11,7 @@ export function AgentChatPanel() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [streamingMessage, setStreamingMessage] = useState('');
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollAnchorRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const loadMessages = async () => {
       const res = await chatService.getMessages();
@@ -22,8 +22,8 @@ export function AgentChatPanel() {
     loadMessages();
   }, []);
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (scrollAnchorRef.current) {
+      scrollAnchorRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, streamingMessage]);
   const handleSendMessage = async () => {
@@ -42,7 +42,6 @@ export function AgentChatPanel() {
       await chatService.sendMessage(input, undefined, (chunk) => {
         setStreamingMessage(prev => prev + chunk);
       });
-      // Re-fetch final state
       const res = await chatService.getMessages();
       if (res.success && res.data) {
         setMessages(res.data.messages);
@@ -69,14 +68,14 @@ export function AgentChatPanel() {
           </div>
         </div>
       </div>
-      <ScrollArea className="flex-1 p-4" viewportRef={scrollRef}>
-        <div className="space-y-6 pb-4">
+      <ScrollArea className="flex-1 px-4">
+        <div className="space-y-6 py-6">
           {messages.map((msg) => (
             <div key={msg.id} className={cn("flex flex-col gap-2", msg.role === 'user' ? "items-end" : "items-start")}>
               <div className={cn(
                 "max-w-[85%] rounded-2xl p-3 text-sm transition-all",
-                msg.role === 'user' 
-                  ? "bg-brand-cyan text-white rounded-tr-none shadow-glow/20" 
+                msg.role === 'user'
+                  ? "bg-brand-cyan text-white rounded-tr-none shadow-glow/20"
                   : "bg-slate-900 border border-white/10 text-slate-200 rounded-tl-none glass-panel"
               )}>
                 {msg.content}
@@ -109,6 +108,7 @@ export function AgentChatPanel() {
               Sopphy is thinking...
             </div>
           )}
+          <div ref={scrollAnchorRef} className="h-4" />
         </div>
       </ScrollArea>
       <div className="p-4 border-t border-white/10 bg-slate-950/50 backdrop-blur-md">
@@ -121,10 +121,10 @@ export function AgentChatPanel() {
             disabled={isProcessing}
             className="pr-12 bg-slate-900 border-white/10 focus-visible:ring-brand-cyan focus-visible:border-brand-cyan/50 h-11"
           />
-          <Button 
+          <Button
             onClick={handleSendMessage}
             disabled={isProcessing || !input.trim()}
-            size="icon" 
+            size="icon"
             className="absolute right-1.5 top-1/2 -translate-y-1/2 h-8 w-8 bg-brand-cyan hover:bg-brand-cyan/90"
           >
             <Send className="h-4 w-4" />

@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
-import { FileCode, Layout, Box, Search, ChevronRight, Folder, FolderOpen, Database, Globe, MoreVertical, Trash2, Edit3 } from 'lucide-react';
+import { FileCode, Layout, Box, Search, ChevronRight, Folder, FolderOpen, Database, Globe } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { useWorkspaceStore, Artifact } from '@/lib/workspace-store';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
+type Artifact = {
+  id: string;
+  name: string;
+  type: 'ui' | 'logic' | 'component' | 'data';
+  status: 'stable' | 'forging' | 'pending';
+};
+const mockArtifacts: Artifact[] = [
+  { id: '1', name: 'LandingHero.tsx', type: 'ui', status: 'stable' },
+  { id: '2', name: 'auth-middleware.ts', type: 'logic', status: 'forging' },
+  { id: '3', name: 'UserCard.tsx', type: 'component', status: 'stable' },
+  { id: '4', name: 'd1-schema.sql', type: 'data', status: 'pending' },
+  { id: '5', name: 'AppConfig.json', type: 'logic', status: 'stable' },
+];
 const TypeIcon = ({ type }: { type: Artifact['type'] }) => {
   switch (type) {
     case 'ui': return <Layout className="h-4 w-4 text-brand-cyan" />;
@@ -23,28 +27,7 @@ const TypeIcon = ({ type }: { type: Artifact['type'] }) => {
 };
 export function ArtifactExplorer() {
   const [search, setSearch] = useState('');
-  const artifacts = useWorkspaceStore((s) => s.artifacts);
-  const selectedArtifactId = useWorkspaceStore((s) => s.selectedArtifactId);
-  const selectArtifact = useWorkspaceStore((s) => s.selectArtifact);
-  const removeArtifact = useWorkspaceStore((s) => s.removeArtifact);
-  const updateArtifactName = useWorkspaceStore((s) => s.updateArtifactName);
-  const addLog = useWorkspaceStore((s) => s.addLog);
-  const filtered = artifacts.filter(a => a.name.toLowerCase().includes(search.toLowerCase()));
-  const handleRename = (id: string, currentName: string) => {
-    const newName = window.prompt("Rename artifact:", currentName);
-    if (newName && newName !== currentName) {
-      updateArtifactName(id, newName);
-      addLog('info', `Artifact renamed: ${currentName} -> ${newName}`);
-      toast.success("Artifact renamed");
-    }
-  };
-  const handleDelete = (id: string, name: string) => {
-    if (confirm(`Are you sure you want to delete ${name}?`)) {
-      removeArtifact(id);
-      addLog('warn', `Artifact deleted: ${name}`);
-      toast.success("Artifact removed from forge");
-    }
-  };
+  const filtered = mockArtifacts.filter(a => a.name.toLowerCase().includes(search.toLowerCase()));
   return (
     <div className="flex flex-col h-full bg-slate-950/90 border-r border-white/10">
       <div className="p-4 border-b border-white/10">
@@ -69,54 +52,29 @@ export function ArtifactExplorer() {
             <span>src/components</span>
           </div>
           <div className="pl-4 space-y-1">
-            {filtered.length === 0 && search === '' ? (
-              <div className="px-3 py-4 text-[10px] text-muted-foreground italic border border-dashed border-white/5 rounded-lg text-center">
-                Waiting for agent to forge artifacts...
-              </div>
-            ) : (
-              filtered.map(artifact => (
-                <div
-                  key={artifact.id}
-                  onClick={() => selectArtifact(artifact.id)}
-                  className={cn(
-                    "flex items-center justify-between px-3 py-2 rounded-lg text-xs cursor-pointer transition-all border group/item",
-                    selectedArtifactId === artifact.id
-                      ? "bg-brand-cyan/10 border-brand-cyan/40 text-brand-cyan shadow-glow"
-                      : "bg-transparent border-transparent text-slate-300 hover:bg-white/5 hover:border-white/10",
-                    artifact.status === 'forging' && "bg-brand-purple/5 border-brand-purple/20"
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={cn(artifact.status === 'forging' && "animate-pulse")}>
-                       <TypeIcon type={artifact.type} />
-                    </div>
-                    <span className={cn(
-                      "transition-colors truncate max-w-[120px]",
-                      artifact.status === 'forging' ? "text-brand-purple animate-pulse" : ""
-                    )}>
-                      {artifact.name}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => e.stopPropagation()}>
-                          <MoreVertical className="h-3 w-3" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-slate-950 border-white/10 text-white">
-                        <DropdownMenuItem onClick={() => handleRename(artifact.id, artifact.name)} className="gap-2">
-                          <Edit3 className="h-3.5 w-3.5" /> Rename
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDelete(artifact.id, artifact.name)} className="gap-2 text-red-400 focus:text-red-400">
-                          <Trash2 className="h-3.5 w-3.5" /> Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+            {filtered.map(artifact => (
+              <div
+                key={artifact.id}
+                className={cn(
+                  "flex items-center justify-between px-3 py-2 rounded-lg text-xs cursor-pointer transition-all border border-transparent",
+                  "hover:bg-brand-cyan/5 hover:border-brand-cyan/20 group",
+                  artifact.status === 'forging' && "bg-brand-purple/5 animate-pulse"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <TypeIcon type={artifact.type} />
+                  <span className="text-slate-300 group-hover:text-white transition-colors">{artifact.name}</span>
                 </div>
-              ))
-            )}
+                {artifact.status === 'forging' && (
+                  <div className="h-1.5 w-1.5 rounded-full bg-brand-purple shadow-glow-purple" />
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="px-2 py-1.5 flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-white cursor-pointer group">
+            <ChevronRight className="h-3 w-3" />
+            <Folder className="h-3.5 w-3.5 text-blue-400/60" />
+            <span>worker/logic</span>
           </div>
         </div>
       </ScrollArea>
@@ -126,7 +84,7 @@ export function ArtifactExplorer() {
             <Globe className="h-3 w-3" />
             <span>Branch: main</span>
           </div>
-          <span className="text-brand-cyan font-mono">{artifacts.length} Artifacts</span>
+          <span className="text-brand-cyan">5 Artifacts</span>
         </div>
       </div>
     </div>
